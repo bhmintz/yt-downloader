@@ -80,3 +80,6 @@ def sub_main():
         
         texto("EXITO: Archivo de configuración creado correctamente", "brgreen", 2)
         return load_file()
+
+if __name__ == "__main__":
+    pass

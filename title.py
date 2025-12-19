@@ -13,3 +13,6 @@ def title():
     tools.Console().print(f"[bold {a}]    │[/bold {a}]      [bold {e}]✗[/bold {e}]    [bold {b}]Youtube Downloader[/bold {b}]    [bold {e}]✗[/bold {e}]      [bold {a}]│                                                               [/bold {a}][bold {c}]Version: {tools.version}[/bold {c}]")
     tools.Console().print(f"[bold {a}]    └────────────────────────────────────┘                                                           [/bold {a}][bold {d}] [/bold {d}]")
     print("")
+
+if __name__ == "__main__":
+    pass

@@ -179,3 +179,6 @@ def verify_time_func():
         inp_texto("Presiona ENTER para salir", "white", 2)
         return exit()
 '''
+
+if __name__ == "__main__":
+    pass
