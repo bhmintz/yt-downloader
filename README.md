@@ -1,4 +1,4 @@
-# ytmp3-downloader
+# yt-downloader
 Herramienta de descarga (basado en yt-dlp y ffmpeg)
 
 
