@@ -19,87 +19,86 @@ verify_time = False
 def clear():
     if debug == False: data.os.system(debug_c)
 
-def color(color_value, module=1):
-    if module == 1:
-        match color_value:
-            case "green": color_value = Fore.GREEN
-            case "red": color_value = Fore.RED
-            case "blue": color_value = Fore.BLUE
-            case "yellow": color_value = Fore.YELLOW
-            case "cyan": color_value = Fore.CYAN
-            case "magenta": color_value = Fore.MAGENTA
-            case "black": color_value = Fore.BLACK
-            case "white": color_value = Fore.WHITE
-            case "lgreen": color_value = Fore.LIGHTGREEN_EX
-            case "lred": color_value = Fore.LIGHTRED_EX
-            case "lblue": color_value = Fore.LIGHTBLUE_EX
-            case "lyellow": color_value = Fore.LIGHTYELLOW_EX
-            case "lcyan": color_value = Fore.LIGHTCYAN_EX
-            case "lmagenta": color_value = Fore.LIGHTMAGENTA_EX
-            case "lblack": color_value = Fore.LIGHTBLACK_EX
-            case "lwhite": color_value = Fore.LIGHTWHITE_EX
-            case None: color_value = Fore.GREEN
+COLOR_MAP_TERM = {
+    "green": Fore.GREEN,
+    "red": Fore.RED,
+    "blue": Fore.BLUE,
+    "yellow": Fore.YELLOW,
+    "cyan": Fore.CYAN,
+    "magenta": Fore.MAGENTA,
+    "black": Fore.BLACK,
+    "white": Fore.WHITE,
+    "lgreen": Fore.LIGHTGREEN_EX,
+    "lred": Fore.LIGHTRED_EX,
+    "lblue": Fore.LIGHTBLUE_EX,
+    "lyellow": Fore.LIGHTYELLOW_EX,
+    "lcyan": Fore.LIGHTCYAN_EX,
+    "lmagenta": Fore.LIGHTMAGENTA_EX,
+    "lblack": Fore.LIGHTBLACK_EX,
+    "lwhite": Fore.LIGHTWHITE_EX
+}
+COLOR_MAP_HEX = {
+    # Basics
+    "green": "#008000",
+    "red": "#FF0000",
+    "blue": "#0000FF",
+    "yellow": "#FFFF00",
+    "orange": "#FFA500",
+    "cyan": "#00FFFF",
+    "magenta": "#FF00FF",
+    "pink": "#FFC0CB",
+    "black": "#000000",
+    "white": "#FFFFFF",
+
+    # Light
+    "lgreen": "#90EE90",
+    "lred": "#FF474C",
+    "lblue": "#ADD8E6",
+    "lyellow": "#FFFAA0",
+    "lorange": "#FFD580",
+    "lcyan": "#00FFF0",
+    "lmagenta": "#FF80FF",
+    "lpink": "#FFB6C1",
+    "lblack": "#454545",
+    "lwhite": "#FFFFF7",
+
+    # Bright
+    "brgreen": "#AAFF00",
+    "brred": "#EE4B2B",
+    "brblue": "#0096FF",
+    "bryellow": "#CFFF04",
+    "brorange": "#FF5C00",
+    "brcyan": "#0AFFFF",
+    "brmagenta": "#FF08E8",
+    "brpink": "#FF007F",
+    "brblack": "#222024",
+    "brwhite": "#FFFFFF"
+}
+
+def color(color_value, terminal=True):
+    if terminal: return COLOR_MAP_TERM.get(color_value, Fore.GREEN)
+    else: return COLOR_MAP_HEX.get(color_value, "#FFFFFF")
+
+def texto(texto, color_value, terminal=True, style=""):
+    clear = Style.RESET_ALL
+    if terminal:
+        colorr = color(color_value)
+        print(colorr + texto + clear)
     else:
-        match color_value:
-            # Basics
-            case "green": color_value = "#008000"
-            case "red": color_value = "#FF0000"
-            case "blue": color_value = "#0000FF"
-            case "yellow": color_value = "#FFFF00"
-            case "orange": color_value = "#FFA500"
-            case "cyan": color_value = "#00FFFF"
-            case "magenta": color_value = "#FF00FF"
-            case "pink": color_value = "#FFC0CB"
-            case "black": color_value = "#000000"
-            case "white": color_value = "#FFFFFF"
-
-            # Light
-            case "lgreen": color_value = "#90EE90"
-            case "lred": color_value = "#FF474C"
-            case "lblue": color_value = "#ADD8E6"
-            case "lyellow": color_value = "#FFFAA0"
-            case "lorange": color_value = "#FFD580"
-            case "lcyan": color_value = "#00FFF0"
-            case "lmagenta": color_value = "#FF80FF"
-            case "lpink": color_value = "#FFB6C1"
-            case "lblack": color_value = "#454545"
-            case "lwhite": color_value = "#FFFFF7"
-
-            # Bright
-            case "brgreen": color_value = "#AAFF00"
-            case "brred": color_value = "#EE4B2B"
-            case "brblue": color_value = "#0096FF"
-            case "bryellow": color_value = "#CFFF04"
-            case "brorange": color_value = "#FF5C00"
-            case "brcyan": color_value = "#0AFFFF"
-            case "brmagenta": color_value = "#FF08E8"
-            case "brpink": color_value = "#FF007F"
-            case "brblack": color_value = "#222024"
-            case "lwhite": color_value = "#FFFFFF"
-
-            case None: color_value = "#008000"
-    return color_value
-
-def texto(texto, color_value, module=1, style=""):
-    if module == 1:
-            clear_color = Style.RESET_ALL
-            colorr = color(color_value)
-            print(colorr + texto + clear_color)
-    else:
-        colorr = color(color_value, 2)
+        colorr = color(color_value, False)
         Console().print(f"[{style}{colorr}]{texto}[/{style}{colorr}]")
 
-def inp_texto(texto, color_value, module=1, style=""):
-    colorr = color(color_value, module)
-    if module == 1:
-        clear_color = Style.RESET_ALL
-        input_value = input(colorr + texto + clear_color)
+def inp_texto(texto, color_value, terminal=True, style=""):
+    colorr = color(color_value, terminal)
+    if terminal:
+        clear = Style.RESET_ALL
+        input_value = input(colorr + texto + clear)
     else:
         input_value = Prompt.ask(f"[{style}{colorr}]{texto}[/{style}{colorr}]")
     return input_value
 
-def comprobacion(texto, colorr, module=1, style=""):
-    confirm = inp_texto(texto, colorr, module, style)
+def comprobacion(texto, colorr, terminal=True, style=""):
+    confirm = inp_texto(texto, colorr, terminal)
     confirm = confirm.lower()
 
     if confirm == "y" or confirm == "yes":
