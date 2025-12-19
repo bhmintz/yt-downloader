@@ -1,122 +1,171 @@
-import tkinter, yt_dlp, ctypes, sys, tools, winsound, data, threading
-import tkinter.font
+import tkinter, yt_dlp, ctypes, sys, tools, winsound, data, threading, tkinter.font
+from types import SimpleNamespace
 
-def admin():
-    try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
-        return False
+ui = SimpleNamespace()
 
-def mi_hook(d):
-    global texto_estado
-    if d['status'] == 'downloading':
-        porcentaje = d.get('_percent_str', '').strip()
-        texto_estado.set(f"Descargando: {porcentaje}")
-    elif d['status'] == 'finished':
-        texto_estado.set("¡Completado!")
-        winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS)
+ui.second_pass = False
 
-def clear_url():
-    global url
-    url.delete(0, tkinter.END)
+class StdoutHook:
+    def __init__(self, original_stdout):
+        self.original_stdout = original_stdout
 
-def error_message(a):
-    error = tkinter.Toplevel()
-    error.title("Error")
-        
-    # Dimensiones deseadas
-    ancho = 250
-    alto = 100
-        
-    # Obtener posición y tamaño de la ventana principal
-    ventana.update_idletasks()
-        
-    x_main = ventana.winfo_x()
-    y_main = ventana.winfo_y()
-    ancho_main = ventana.winfo_width()
-    alto_main = ventana.winfo_height()
-        
-    # Calcular posición centrada
-    x = x_main + (ancho_main - ancho) // 2
-    y = y_main + (alto_main - alto) // 2
-        
-    error.geometry(f"{ancho}x{alto}+{x}+{y}")
+    def write(self, text):
+        # Luego mandar el texto original a la consola
+        self.original_stdout.write(text)
+        self.original_stdout.flush()
 
-    error.configure(bg="#1e1e1e")
-        
-    error.iconbitmap(iconempty)
+        # Ejecutar código cada vez que se imprime algo
+        if text.strip() and "Deleting original file" in text.strip():  # para evitar ejecutar con saltos de línea vacíos
+            if ui.download_option_var.get() == "Video":
+                if ui.second_pass == True:
+                    ui.second_pass = not ui.second_pass
+                    ui.texto_estado.set("Descarga finalizada")
+                    winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS)
+                else: ui.second_pass = True
+            else:
+                ui.texto_estado.set("Descarga finalizada")
+                winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS)
+            #self.original_stdout.write(f"[HOOK] Capturado: {text.strip()}\n")
 
-    error.resizable(False, False)
+    def flush(self):
+        self.original_stdout.flush()
 
-    error.grid_columnconfigure(0, weight=1)
-    error.grid_columnconfigure(1, weight=1)
-    error.grid_columnconfigure(2, weight=1)
-        
-    error.grid_rowconfigure(0, weight=1)
-    error.grid_rowconfigure(1, weight=1)
-    error.grid_rowconfigure(2, weight=1)
+sys.stdout = StdoutHook(sys.stdout)
 
-    error_label = tkinter.Label(error, text=a, font=font, bg="#1e1e1e", fg="white", width=40, justify="center")
-    error_label.grid(row=1, column=1, pady=(20, 20))
+##***************# # # # # # # # # # #*******************##
+##               #    Main WINDOW    #                   ##
+## # # # # # # # # # # # # # # # # # # # # # # # # # # # ##
+def main_window():
 
-    error_button = tkinter.Button(error, text="Continuar", font=font, command= error.destroy, justify="center")
-    error_button.grid(row=2, column=1, pady=(10, 10))
+    if not data.is_compiled(): # Pide permisos de administrador en caso de que este ejecutandose como script .py
+        if not admin():
+            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+            sys.exit()
+    
+    # Rutas de los iconos de la app
+    ui.icons = {
+        "main_ico" : data.script_directory + "\\tools\\icon.ico",
+        "empty_ico" : data.script_directory + "\\tools\\empty.ico"
+    }
 
-    winsound.MessageBeep(winsound.MB_ICONHAND)
+    ui.ventana = tkinter.Tk() # Crea la ventana
+    ui.ventana.title("Youtube Downloader") # Titulo de la ventana
+    ui.ventana.resizable(False, False) # Deshabilita el redimensionamiento de la ventana
 
-def main_menu():
-    global texto_estado, downloading
+    ui.main_width, ui.main_height = 400, 260 # Dimensiones de la ventana
+    width_screen, height_screen = ui.ventana.winfo_screenwidth(), ui.ventana.winfo_screenheight() # Obtener dimensiones de la pantalla
+    
+    # Calcular posición centrada de la ventana
+    main_x = (width_screen - ui.main_width) // 2
+    main_y = (height_screen - ui.main_height - 200) // 2
 
-    if url.get() == "":
+    ui.ventana.geometry(f"{ui.main_width}x{ui.main_height}+{main_x}+{main_y}") # Aplicar geometry centrado
+
+    # Colores de la app
+    ui.colors = {
+        "MAIN_BG" : "#1e1e1e",
+    }
+
+    ui.ventana.configure(bg=ui.colors["MAIN_BG"]) # Configura el color del fondo de la ventana
+    
+    ui.ventana.iconbitmap(ui.icons["main_ico"]) # Establece el ícono de la ventana
+
+    ui.main_font = tkinter.font.Font(family="Segoe UI", size=12) # Variable con la fuente por defecto de la app
+    
+    # Establece el tamaño de las columnas de la red de la ventana
+    columns = 6
+    for i in range(columns):
+        ui.ventana.grid_columnconfigure(i, weight=1)
+    
+    # Establece el tamaño de las filas de la red de la ventana
+    rows = 6
+    for i in range(rows):
+        ui.ventana.grid_rowconfigure(i, weight=1)
+
+    label = tkinter.Label(ui.ventana, text="Introduzca la URL de Youtube", font=ui.main_font, bg=ui.colors["MAIN_BG"], fg="white", width=30, justify="left")
+    label.grid(row=1, column=2, sticky="swe", pady=1, padx=1)
+    
+    ui.url = tkinter.Entry(ui.ventana)
+    ui.url.grid(row=2, column=2, sticky="we", pady=10, padx=5)
+
+    clear_button = tkinter.Button(text="Limpiar", font=ui.main_font, command= clear_url, width=6, height=1)
+    clear_button.grid(row=2, column=3, sticky="", pady=1, padx=1)
+
+    ui.download_option_var = tkinter.StringVar()
+    ui.download_option_var.set("Audio")
+
+    download_audio = tkinter.Radiobutton(ui.ventana, text="Audio", variable=ui.download_option_var, value="Audio", bg=ui.colors["MAIN_BG"], fg="white", selectcolor=ui.colors["MAIN_BG"])
+    download_audio.grid(row=3, column=2, sticky="nw", pady=1, padx=40)
+
+    download_video = tkinter.Radiobutton(ui.ventana, text="Video", variable=ui.download_option_var, value="Video", bg=ui.colors["MAIN_BG"], fg="white", selectcolor=ui.colors["MAIN_BG"])
+    download_video.grid(row=3, column=2, sticky="ne", pady=1, padx=40)
+
+
+    ui.download_button = tkinter.Button(text="Descargar", font=ui.main_font, command=download_window)
+    ui.download_button.grid(row=4, column=2, sticky="nwe", pady=1, padx=1)
+
+    dev_label = tkinter.Label(ui.ventana, text=f"Dev: bhmint", font=ui.main_font, bg=ui.colors["MAIN_BG"], fg="white", width=17)
+    dev_label.grid(row=5, column=1, sticky="w", pady=1, padx=1)
+
+    version = tools.version
+
+    version_label = tkinter.Label(ui.ventana, text=f"Version: {version}", font=ui.main_font, bg=ui.colors["MAIN_BG"], fg="white", width=17)
+    version_label.grid(row=5, column=3, sticky="e", pady=1, padx=1)
+
+    ui.ventana.mainloop()
+
+
+##***************# # # # # # # # # # #*******************##
+##               #  Download WINDOW  #                   ##
+## # # # # # # # # # # # # # # # # # # # # # # # # # # # ##
+
+def download_window(): # this use threading
+    if ui.url.get() == "":
         return error_message("URL Inválida")
     
-    downloading = tkinter.Toplevel()
-    downloading.title("Descargando...")
+    ui.downloading = tkinter.Toplevel()
+    ui.downloading.title("Descargando...")
         
-    # Dimensiones deseadas
-    ancho = 250
-    alto = 100
+    width, height = 250, 100 # Tamaño de la ventana
         
     # Obtener posición y tamaño de la ventana principal
-    ventana.update_idletasks()
+    ui.ventana.update_idletasks()
         
-    x_main = ventana.winfo_x()
-    y_main = ventana.winfo_y()
-    ancho_main = ventana.winfo_width()
-    alto_main = ventana.winfo_height()
+    x_main = ui.ventana.winfo_x()
+    y_main = ui.ventana.winfo_y()
+    ancho_main = ui.ventana.winfo_width()
+    alto_main = ui.ventana.winfo_height()
         
     # Calcular posición centrada
-    x = x_main + (ancho_main - ancho) // 2
-    y = y_main + (alto_main - alto) // 2
+    x = x_main + (ancho_main - width) // 2
+    y = y_main + (alto_main - height) // 2
         
-    downloading.geometry(f"{ancho}x{alto}+{x}+{y}")
+    ui.downloading.geometry(f"{width}x{height}+{x}+{y}")
 
-    downloading.configure(bg="#1e1e1e")
+    ui.downloading.configure(bg=ui.colors["MAIN_BG"])
         
-    downloading.iconbitmap(iconempty)
+    ui.downloading.iconbitmap(ui.icons["empty_ico"])
 
-    downloading.resizable(False, False)
+    ui.downloading.resizable(False, False)
 
-    downloading.grid_columnconfigure(0, weight=1)
-    downloading.grid_columnconfigure(1, weight=1)
-    downloading.grid_columnconfigure(2, weight=1)
-        
-    downloading.grid_rowconfigure(0, weight=1)
-    downloading.grid_rowconfigure(1, weight=1)
-    downloading.grid_rowconfigure(2, weight=1)
+    for i in range(3):
+        ui.downloading.grid_columnconfigure(i, weight=1)
 
-    texto_estado = tkinter.StringVar()
+    for i in range(3):
+        ui.downloading.grid_rowconfigure(i, weight=1)
 
-    state_label = tkinter.Label(downloading, textvariable=texto_estado, font=font, bg="#1e1e1e", fg="white", width=40, justify="center")
+    ui.texto_estado = tkinter.StringVar()
+
+    state_label = tkinter.Label(ui.downloading, textvariable=ui.texto_estado, font=ui.main_font, bg="#1e1e1e", fg="white", width=40, justify="center")
     state_label.grid(row=1, column=1, pady=(20, 20))
 
-    download_button.config(state='disabled')
-    texto_estado.set("Iniciando descarga...")
+    ui.download_button.config(state='disabled')
+    ui.texto_estado.set("Iniciando descarga...")
     
     # Ruta local a ffmpeg
     ruta_ffmpeg = data.script_directory + "\\tools\\ffmpeg.exe"
 
-    if download_option_var.get() == "Audio":
+    if ui.download_option_var.get() == "Audio":
         opciones = {
             'format': 'bestaudio/best',
             'postprocessors': [{
@@ -130,7 +179,7 @@ def main_menu():
         }
     else:
         opciones = {
-            'format': 'bv*[height=1080][ext=mp4]+ba[ext=m4a]/bestvideo[height=1080]+bestaudio',
+            'format': 'bv*[height>=1080][ext=mp4]+ba[ext=m4a]/bestvideo[height>=1080]+bestaudio',
             'merge_output_format': 'mp4',
             'outtmpl': data.script_directory + '\\%(title)s.%(ext)s',
             'noplaylist': True,  # por si la URL es de una playlist
@@ -143,101 +192,93 @@ def main_menu():
     def hilo_descarga():
             try:
                 with yt_dlp.YoutubeDL(opciones) as ydl:
-                    ydl.download([url.get()])
+                    ydl.download([ui.url.get()])
             except yt_dlp.DownloadError as e:
-                downloading.destroy
+                ui.downloading.destroy
                 error_message("URL Inválida")
-                texto_estado.set("Error durante la descarga")
-                downloading.destroy
+                ui.texto_estado.set("Error durante la descarga")
+                ui.downloading.destroy
             except Exception as e:
-                 downloading.destroy
+                 ui.downloading.destroy
                  error_message("Fallo inesperado")
-                 texto_estado.set("Fallo inesperado")
+                 ui.texto_estado.set("Fallo inesperado")
             finally:
-                download_button.config(state='normal')
+                ui.download_button.config(state='normal')
     
     threading.Thread(target=hilo_descarga).start()
 
 
-def main():
-    global url, font, ventana, iconfile, iconempty, download_button, download_option_var
+##***************# # # # # # # # # #*******************##
+##               #   Error WINDOW  #                   ##
+## # # # # # # # # # # # # # # # # # # # # # # # # # # ##
 
-    if not data.is_compiled(): # Pide permisos de administrador en caso de que este ejecutandose como script .py
-        if not admin():
-            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
-            sys.exit()
+def error_message(a): # download_window call this
+    error = tkinter.Toplevel() # Crea la ventana
 
-    iconfile = data.script_directory + "\\tools\\icon.ico"
-    iconempty = data.script_directory + "\\tools\\empty.ico"
-    ventana = tkinter.Tk()
-    ventana.title("Youtube Downloader")
+    error.title("Error") # Título de la ventana 
+    width, height = 250, 100 # Tamaño de la ventana
 
-    ventana.resizable(False, False)
-
-    # Dimensiones deseadas de la ventana
-    ancho = 400
-    alto = 260
-    
-    # Obtener dimensiones de la pantalla
-    ancho_pantalla = ventana.winfo_screenwidth()
-    alto_pantalla = ventana.winfo_screenheight()
-    
+    ui.ventana.update_idletasks() # Obtine el tamaño de la ventana principal
+    x_main = ui.ventana.winfo_x() #
+    y_main = ui.ventana.winfo_y() #
+    width_main = ui.ventana.winfo_width() #
+    height_main = ui.ventana.winfo_height() #
+        
     # Calcular posición centrada
-    x = (ancho_pantalla - ancho) // 2
-    y = (alto_pantalla - alto - 200) // 2
+    x = x_main + (width_main - width) // 2
+    y = y_main + (height_main - height) // 2
+        
+    error.geometry(f"{width}x{height}+{x}+{y}")
 
-    # Aplicar geometry centrado
-    ventana.geometry(f"{ancho}x{alto}+{x}+{y}")
+    error.configure(bg=ui.colors["MAIN_BG"])
+        
+    error.iconbitmap(ui.icons["empty_ico"])
 
-    ventana.configure(bg="#1e1e1e")
+    error.resizable(False, False)
+
+    columns = 3
+    for i in range(columns):
+        error.grid_columnconfigure(i, weight=1)
     
-    ventana.iconbitmap(iconfile)
+    rows = 3
+    for i in range(rows):
+        error.grid_rowconfigure(i, weight=1)
 
-    font = tkinter.font.Font(family="Segoe UI", size=12)
-    
-    ventana.grid_columnconfigure(0, weight=1)
-    ventana.grid_columnconfigure(1, weight=1)
-    ventana.grid_columnconfigure(2, weight=1)
-    ventana.grid_columnconfigure(3, weight=1)
-    ventana.grid_columnconfigure(4, weight=1)
+    error_label = tkinter.Label(error, text=a, font=ui.main_font, bg=ui.colors["MAIN_BG"], fg="white", width=40, justify="center")
+    error_label.grid(row=1, column=1, pady=(20, 20))
 
-    ventana.grid_rowconfigure(0, weight=1)
-    ventana.grid_rowconfigure(1, weight=1)
-    ventana.grid_rowconfigure(2, weight=1)
-    ventana.grid_rowconfigure(3, weight=1)
-    ventana.grid_rowconfigure(4, weight=1)
-    ventana.grid_rowconfigure(5, weight=1)
+    error_button = tkinter.Button(error, text="Continuar", font=ui.main_font, command= error.destroy, justify="center")
+    error_button.grid(row=2, column=1, pady=(10, 10))
 
-    label = tkinter.Label(ventana, text="Introduzca la URL de Youtube", font=font, bg="#1e1e1e", fg="white", width=30, justify="left")
-    label.grid(row=1, column=2, sticky="swe", pady=1, padx=1)
-    
-    url = tkinter.Entry(ventana)
-    url.grid(row=2, column=2, sticky="we", pady=10, padx=5)
-
-    clear_button = tkinter.Button(text="Limpiar", font=font, command= clear_url, width=6, height=1)
-    clear_button.grid(row=2, column=3, sticky="", pady=1, padx=1)
-
-    download_option_var = tkinter.StringVar()
-    download_option_var.set("Audio")
-
-    download_audio = tkinter.Radiobutton(ventana, text="Audio", variable=download_option_var, value="Audio", bg="#1e1e1e", fg="white", selectcolor="#1e1e1e")
-    download_audio.grid(row=3, column=2, sticky="nw", pady=1, padx=40)
-
-    download_video = tkinter.Radiobutton(ventana, text="Video", variable=download_option_var, value="Video", bg="#1e1e1e", fg="white", selectcolor="#1e1e1e")
-    download_video.grid(row=3, column=2, sticky="ne", pady=1, padx=40)
+    winsound.MessageBeep(winsound.MB_ICONHAND)
 
 
-    download_button = tkinter.Button(text="Descargar", font=font, command=main_menu)
-    download_button.grid(row=4, column=2, sticky="nwe", pady=1, padx=1)
+##***************# # # # # # # # # #*******************##
+##               #     Fuctions    #                   ##
+## # # # # # # # # # # # # # # # # # # # # # # # # # # ## 
 
-    dev_label = tkinter.Label(ventana, text=f"Dev: bhmint", font=font, bg="#1e1e1e", fg="white", width=17)
-    dev_label.grid(row=5, column=1, sticky="w", pady=1, padx=1)
+def admin() -> bool: # main_window call this
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
 
-    version = tools.version
+def mi_hook(a): # download_window call this
+    if a['status'] == 'downloading':
+        porcentaje = a.get('_percent_str', '').strip()
+        eta = a.get('_eta_str', '').strip()
+        downloaded_bytes = a.get('_downloaded_bytes_str', '').strip()
+        estimated_bytes = a.get('_total_bytes_estimate_str', '').strip()
 
-    version_label = tkinter.Label(ventana, text=f"Version: {version}", font=font, bg="#1e1e1e", fg="white", width=17)
-    version_label.grid(row=5, column=3, sticky="e", pady=1, padx=1)
+        ui.texto_estado.set(f"Descargando: {porcentaje}\n{downloaded_bytes}/{estimated_bytes}\nTiempo restante: {eta}")
+    elif a['status'] == 'finished':
+        return
 
-    ventana.mainloop()
+def clear_url(): # main_window call this
+    ui.url.delete(0, tkinter.END)
 
-main()
+
+main_window()
+
+if __name__ == "__main__":
+    pass
