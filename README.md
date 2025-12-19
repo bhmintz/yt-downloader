@@ -1,2 +1,5 @@
 # ytmp3-downloader
-backend basico a yt-dlp
+Herramienta de descarga (basado en yt-dlp y ffmpeg)
+
+
+Download tool (based on yt-dlp and ffmpeg)
