@@ -8,17 +8,16 @@ from colorama import Fore, Style
 #from datetime import datetime, timedelta
 #from zoneinfo import ZoneInfo
 
-version = "0.1.0"
+version = "0.1.2"
 
 # Detecta el sistema y guarda el valor correcto para vaciar consola según el sistema corriendo
-debug, debug_c = False, "clear" if data.os.name == "posix" else "cls",
+debug, debug_c = False, "clear" if data.os.name == "posix" else "cls"
 
 # Variable de verificacion de tiempo
 verify_time = False
 
 def clear():
-    if debug == False:
-        data.os.system(debug_c)
+    if debug == False: data.os.system(debug_c)
 
 def color(color_value, module=1):
     if module == 1:
