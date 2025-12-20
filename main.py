@@ -179,7 +179,7 @@ def download_window(): # this use threading
         }
     else:
         opciones = {
-            'format': 'bv*[height>=1080][ext=mp4]+ba[ext=m4a]/bestvideo[height>=1080]+bestaudio',
+            'format': 'bv*[height<=1080][ext=mp4]+ba[ext=m4a]/bestvideo[height<=1080]+bestaudio',
             'merge_output_format': 'mp4',
             'outtmpl': data.script_directory + '\\%(title)s.%(ext)s',
             'noplaylist': True,  # por si la URL es de una playlist
