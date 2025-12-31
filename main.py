@@ -8,14 +8,15 @@ ui.second_pass = False
 class StdoutHook:
     def __init__(self, original_stdout):
         self.original_stdout = original_stdout
-
+    
+    # Método write para la clase
     def write(self, text):
         # Luego mandar el texto original a la consola
         self.original_stdout.write(text)
         self.original_stdout.flush()
 
         # Ejecutar código cada vez que se imprime algo
-        if text.strip() and "Deleting original file" in text.strip():  # para evitar ejecutar con saltos de línea vacíos
+        if text.strip() and "Deleting original file" in text.strip():  # evita detectar saltos de linea y prints del programa
             if ui.download_option_var.get() == "Video":
                 if ui.second_pass == True:
                     ui.second_pass = not ui.second_pass
@@ -25,8 +26,9 @@ class StdoutHook:
             else:
                 ui.texto_estado.set("Descarga finalizada")
                 winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS)
-            #self.original_stdout.write(f"[HOOK] Capturado: {text.strip()}\n")
-
+            #self.original_stdout.write(f"[HOOK] Capturado: {text.strip()}\n") testing
+    
+    # Método flush para la clase
     def flush(self):
         self.original_stdout.flush()
 
