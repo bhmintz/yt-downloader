@@ -8,7 +8,7 @@ if is_compiled():
 else:
     script_directory = os.path.dirname(os.path.abspath(__file__))
 
-# Abre CLI en caso de que no esté abierto
+# Abre console en caso de que no esté abierto
 if sys.stdout is None:
     sys.stdout = open(os.devnull, "w", encoding="utf-8")
 if sys.stderr is None:
